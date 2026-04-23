@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classical Cipher Laboratory</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0c10;
+    --surface:   #111318;
+    --panel:     #16191f;
+    --border:    #252830;
+    --accent:    #e8ff47;
+    --accent2:   #47d6ff;
+    --accent3:   #ff6b6b;
+    --accent4:   #b47fff;
+    --text:      #e8eaf0;
+    --muted:     #666c80;
+    --mono:      'Space Mono', monospace;
+    --sans:      'Syne', sans-serif;
+    --radius:    10px;
+    --glow:      0 0 24px rgba(232,255,71,.18);
+    --glow2:     0 0 24px rgba(71,214,255,.18);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 48px 32px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: .8;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .header-sub {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* ── CIPHER TABS ── */
+  .cipher-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .tab-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover { color: var(--text); border-color: #3a3f50; }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 700;
+    box-shadow: var(--glow);
+  }
+
+  /* ── CIPHER DESCRIPTION ── */
+  .cipher-desc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--muted);
+    animation: fadeIn .3s ease;
+  }
+
+  .cipher-desc strong { color: var(--accent); }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 12px 14px;
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+    resize: vertical;
+  }
+
+  textarea { min-height: 110px; }
+
+  textarea:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,255,71,.08);
+  }
+
+  .key-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    margin-top: 16px;
+  }
+
+  .key-row > div { flex: 1; }
+
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  /* ── ACTION BUTTONS ── */
+  .action-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 13px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .btn-encrypt {
+    background: var(--accent);
+    color: #000;
+    box-shadow: var(--glow);
+  }
+
+  .btn-encrypt:hover {
+    background: #d4eb30;
+    transform: translateY(-1px);
+    box-shadow: 0 0 32px rgba(232,255,71,.3);
+  }
+
+  .btn-decrypt {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    box-shadow: var(--glow2);
+  }
+
+  .btn-decrypt:hover {
+    background: rgba(71,214,255,.08);
+    transform: translateY(-1px);
+  }
+
+  .btn:active { transform: translateY(0) scale(.98); }
+
+  /* ── OUTPUT ── */
+  .output-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    min-height: 56px;
+    word-break: break-all;
+    letter-spacing: .5px;
+    color: var(--accent);
+    position: relative;
+  }
+
+  .output-placeholder { color: var(--muted); font-size: 12px; }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--border);
+    border: none;
+    border-radius: 5px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .copy-btn:hover { background: var(--accent); color: #000; }
+
+  /* ── STEPS PANEL ── */
+  .steps-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 0;
+  }
+
+  .steps-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent4);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .steps-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .steps-container { display: flex; flex-direction: column; gap: 16px; }
+
+  .step {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    animation: slideIn .3s ease both;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent4);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+
+  .step-body {
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+
+  .step-body .highlight { color: var(--accent); font-weight: 700; }
+  .step-body .hl2 { color: var(--accent2); }
+  .step-body .hl3 { color: var(--accent3); }
+  .step-body .hl4 { color: var(--accent4); }
+
+  /* ── TABLES ── */
+  .cipher-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .cipher-table th, .cipher-table td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .cipher-table th {
+    background: var(--panel);
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .cipher-table td { color: var(--muted); }
+  .cipher-table .cell-active { color: var(--accent2); font-weight: 700; }
+  .cipher-table .cell-key { color: var(--accent4); font-weight: 700; }
+  .cipher-table .cell-result { color: var(--accent); font-weight: 700; }
+
+  .rail-row { white-space: pre; letter-spacing: 2px; }
+
+  /* ── MATRIX GRID ── */
+  .matrix-grid {
+    display: inline-grid;
+    gap: 2px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin: 8px 0;
+  }
+
+  .matrix-cell {
+    width: 30px; height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel);
+    color: var(--muted);
+    transition: all .2s;
+  }
+
+  .matrix-cell.active { background: rgba(232,255,71,.12); color: var(--accent); border-color: var(--accent); }
+  .matrix-cell.key-cell { background: rgba(180,127,255,.12); color: var(--accent4); border-color: var(--accent4); }
+
+  /* ── SHIFT DISPLAY ── */
+  .shift-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0;
+  }
+
+  .shift-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 32px;
+  }
+
+  .shift-char {
+    width: 30px; height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .shift-char.plain { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  .shift-char.cipher-out { background: rgba(232,255,71,.12); color: var(--accent); border: 1px solid rgba(232,255,71,.3); }
+  .shift-char.space-char { opacity: .3; }
+  .shift-arrow { font-size: 8px; color: var(--muted); }
+  .shift-num { font-family: var(--mono); font-size: 9px; color: var(--accent4); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+
+  .step:nth-child(1) { animation-delay: .0s; }
+  .step:nth-child(2) { animation-delay: .05s; }
+  .step:nth-child(3) { animation-delay: .1s; }
+  .step:nth-child(4) { animation-delay: .15s; }
+  .step:nth-child(5) { animation-delay: .2s; }
+  .step:nth-child(6) { animation-delay: .25s; }
+  .step:nth-child(7) { animation-delay: .3s; }
+
+  /* ── ERROR ── */
+  .error-msg {
+    color: var(--accent3);
+    font-family: var(--mono);
+    font-size: 11px;
+    margin-top: 6px;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(232,255,71,.1);
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">// Cryptography Laboratory</div>
+  <h1>Classical Ciphers</h1>
+  <p class="header-sub">Encrypt, decrypt &amp; visualize classical substitution and transposition ciphers — step by step.</p>
+</header>
+
+<div class="app">
+
+  <!-- CIPHER TABS -->
+  <div class="cipher-tabs" id="cipherTabs">
+    <button class="tab-btn active" data-cipher="caesar">Caesar</button>
+    <button class="tab-btn" data-cipher="vigenere">Vigenère</button>
+    <button class="tab-btn" data-cipher="playfair">Playfair</button>
+    <button class="tab-btn" data-cipher="railfence">Rail Fence</button>
+    <button class="tab-btn" data-cipher="columnar">Columnar</button>
+  </div>
+
+  <!-- CIPHER DESCRIPTION -->
+  <div class="cipher-desc" id="cipherDesc"></div>
+
+  <!-- MAIN GRID: Input + Output -->
+  <div class="main-grid">
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <div class="panel-label">// Input</div>
+      <textarea id="inputText" placeholder="Enter your text here…" spellcheck="false"></textarea>
+
+      <!-- Key inputs (shown per cipher) -->
+      <div class="key-row" id="keyRow">
+        <div id="keyField1Wrap">
+          <div class="field-label" id="keyLabel1">Key</div>
+          <input type="text" id="key1" placeholder="Enter key…" spellcheck="false">
+        </div>
+      </div>
+      <div class="error-msg" id="errorMsg">⚠ Invalid input or key</div>
+
+      <div class="action-row">
+        <button class="btn btn-encrypt" id="encryptBtn">&#9654; Encrypt</button>
+        <button class="btn btn-decrypt" id="decryptBtn">&#9664; Decrypt</button>
+      </div>
+    </div>
+
+    <!-- OUTPUT PANEL -->
+    <div class="panel">
+      <div class="panel-label">// Output</div>
+      <div class="output-box" id="outputBox">
+        <span class="output-placeholder">Result will appear here…</span>
+        <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyOutput()">Copy</button>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="panel-label">// Operation</div>
+        <div id="opBadge" style="font-family:var(--mono);font-size:12px;color:var(--muted);">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEPS PANEL -->
+  <div class="steps-panel">
+    <div class="steps-title">Step-by-Step Visualization</div>
+    <div class="steps-container" id="stepsContainer">
+      <div class="empty-state">
+        <div class="empty-icon">🔐</div>
+        Enter text and press <span class="highlight" style="color:var(--accent)">Encrypt</span> or <span style="color:var(--accent2)">Decrypt</span> to see steps.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   CIPHER LABORATORY — All cipher logic in vanilla JS
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ── Cipher Metadata ──────────────────────────────────────────────
+const CIPHERS = {
+  caesar: {
+    name: 'Caesar Cipher',
+    desc: '<strong>Caesar Cipher</strong> — A substitution cipher that shifts each letter in the plaintext by a fixed number of positions in the alphabet. Named after Julius Caesar, who reportedly used a shift of 3. Simple but historically significant. Key must be an integer (0–25).',
+    key1Label: 'Shift (0–25)',
+    key1Placeholder: 'e.g. 3',
+    key2: false,
+  },
+  vigenere: {
+    name: 'Vigenère Cipher',
+    desc: '<strong>Vigenère Cipher</strong> — A polyalphabetic substitution cipher using a keyword. Each letter of the keyword determines a different Caesar shift for the corresponding plaintext letter. Much harder to crack than Caesar because the shift varies. Key must be alphabetic characters only.',
+    key1Label: 'Keyword',
+    key1Placeholder: 'e.g. SECRET',
+    key2: false,
+  },
+  playfair: {
+    name: 'Playfair Cipher',
+    desc: '<strong>Playfair Cipher</strong> — A digraph substitution cipher operating on letter pairs (bigrams) using a 5×5 key matrix (I=J). It provides stronger encryption than single-letter substitution. Key is a word/phrase; the alphabet fills the remaining matrix cells. No spaces — punctuation stripped.',
+    key1Label: 'Keyword',
+    key1Placeholder: 'e.g. MONARCHY',
+    key2: false,
+  },
+  railfence: {
+    name: 'Rail Fence Cipher',
+    desc: '<strong>Rail Fence Cipher</strong> — A transposition cipher writing plaintext in a zig-zag pattern across a number of "rails" (rows), then reading off each row. Easy to implement; the number of rails is the key. Key must be an integer ≥ 2.',
+    key1Label: 'Number of Rails',
+    key1Placeholder: 'e.g. 3',
+    key2: false,
+  },
+  columnar: {
+    name: 'Columnar Transposition',
+    desc: '<strong>Columnar Transposition</strong> — A transposition cipher arranging plaintext into a grid of a given width (key), then reading columns in alphabetical key-letter order. The keyword determines column order. Key must be alphabetic characters only.',
+    key1Label: 'Keyword',
+    key1Placeholder: 'e.g. ZEBRA',
+    key2: false,
+  },
+};
+
+let currentCipher = 'caesar';
+const steps = [];
+
+// ── UI Helpers ───────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+}
+
+function clearError() {
+  document.getElementById('errorMsg').classList.remove('show');
+}
+
+function setOutput(text, op) {
+  const box = document.getElementById('outputBox');
+  box.innerHTML = `<span style="color:var(--accent)">${esc(text)}</span><button class="copy-btn" id="copyBtn" onclick="copyOutput()">Copy</button>`;
+  document.getElementById('opBadge').innerHTML = op;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyOutput() {
+  const box = document.getElementById('outputBox');
+  const text = box.querySelector('span')?.textContent || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+  });
+}
+
+function renderSteps(stepList) {
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = '';
+  stepList.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'step';
+    div.innerHTML = `
+      <div class="step-header">
+        <div class="step-num">${i + 1}</div>
+        <div class="step-title">${s.title}</div>
+      </div>
+      <div class="step-body">${s.body}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ── Tab switching ─────────────────────────────────────────────────
+document.getElementById('cipherTabs').addEventListener('click', e => {
+  if (!e.target.matches('.tab-btn')) return;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentCipher = e.target.dataset.cipher;
+  updateUI();
+});
+
+function updateUI() {
+  const c = CIPHERS[currentCipher];
+  document.getElementById('cipherDesc').innerHTML = c.desc;
+  document.getElementById('keyLabel1').textContent = c.key1Label;
+  document.getElementById('key1').placeholder = c.key1Placeholder;
+  document.getElementById('outputBox').innerHTML = '<span class="output-placeholder">Result will appear here…</span>';
+  document.getElementById('opBadge').innerHTML = '—';
+  document.getElementById('stepsContainer').innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">🔐</div>
+      Enter text and press <span style="color:var(--accent)">Encrypt</span> or <span style="color:var(--accent2)">Decrypt</span> to see steps.
+    </div>`;
+  clearError();
+}
+
+// ── Run cipher ───────────────────────────────────────────────────
+document.getElementById('encryptBtn').addEventListener('click', () => run('encrypt'));
+document.getElementById('decryptBtn').addEventListener('click', () => run('decrypt'));
+
+function run(mode) {
+  clearError();
+  const text = document.getElementById('inputText').value;
+  const key   = document.getElementById('key1').value.trim();
+
+  if (!text) { showError('Please enter some text.'); return; }
+
+  const fns = { caesar, vigenere, playfair, railfence, columnar };
+  try {
+    const { result, steps } = fns[currentCipher](text, key, mode);
+    setOutput(result, mode === 'encrypt'
+      ? `<span style="color:var(--accent)">▲ Encrypted</span> using <strong>${CIPHERS[currentCipher].name}</strong>`
+      : `<span style="color:var(--accent2)">▼ Decrypted</span> using <strong>${CIPHERS[currentCipher].name}</strong>`);
+    renderSteps(steps);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 1. CAESAR CIPHER
+//    Each letter is shifted by `shift` positions in the alphabet.
+//    Non-alpha characters are preserved unchanged.
+// ═══════════════════════════════════════════════════════════════════
+function caesar(text, keyStr, mode) {
+  const shift = parseInt(keyStr, 10);
+  if (isNaN(shift)) throw new Error('Caesar key must be an integer (0–25).');
+  const s = ((shift % 26) + 26) % 26;
+  const dir = mode === 'encrypt' ? s : (26 - s) % 26;
+
+  const steps = [];
+
+  // Step 1: explain shift
+  steps.push({
+    title: 'Determine Shift',
+    body: `Shift value: <span class="highlight">${s}</span>${mode === 'decrypt' ? ` → Reverse shift: <span class="hl3">${dir}</span>` : ''}
+<br>Each letter moves <strong>${dir}</strong> position(s) ${mode === 'encrypt' ? 'forward' : 'backward'} in the alphabet.`,
+  });
+
+  // Step 2: per-character transformation
+  let result = '';
+  const chars = text.split('');
+  const visLimit = Math.min(chars.length, 40);
+  let shiftHtml = '<div class="shift-display">';
+
+  chars.forEach((ch, i) => {
+    let out;
+    if (/[a-zA-Z]/.test(ch)) {
+      const base = ch === ch.toUpperCase() ? 65 : 97;
+      out = String.fromCharCode(((ch.charCodeAt(0) - base + dir) % 26 + base));
+    } else {
+      out = ch;
+    }
+    result += out;
+
+    if (i < visLimit) {
+      const isAlpha = /[a-zA-Z]/.test(ch);
+      const d = isAlpha ? dir : '—';
+      shiftHtml += `<div class="shift-item">
+        <div class="shift-char plain${!isAlpha ? ' space-char' : ''}">${esc(ch === ' ' ? '·' : ch)}</div>
+        <div class="shift-arrow">↓${d !== '—' ? d : ''}</div>
+        <div class="shift-char cipher-out">${esc(out === ' ' ? '·' : out)}</div>
+      </div>`;
+    }
+  });
+
+  shiftHtml += '</div>';
+  if (chars.length > visLimit) shiftHtml += `<div style="color:var(--muted);font-size:11px;margin-top:6px">… and ${chars.length - visLimit} more characters</div>`;
+
+  steps.push({ title: 'Character-by-Character Shift', body: shiftHtml });
+
+  // Step 3: result
+  steps.push({
+    title: 'Final Result',
+    body: `<span class="highlight">${esc(result)}</span>`,
+  });
+
+  return { result, steps };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. VIGENÈRE CIPHER
+//    Each letter is shifted by the corresponding letter in the key
+//    (repeating the key as necessary).
+// ═══════════════════════════════════════════════════════════════════
+function vigenere(text, keyStr, mode) {
+  if (!keyStr || !/^[a-zA-Z]+$/.test(keyStr))
+    throw new Error('Vigenère key must contain only letters.');
+
+  const key = keyStr.toUpperCase();
+  const steps = [];
+  let result = '';
+  let ki = 0;
+
+  // Build visualization table (up to 30 chars)
+  const rows = [];
+  const lim = Math.min(text.length, 30);
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (/[a-zA-Z]/.test(ch)) {
+      const base = ch === ch.toUpperCase() ? 65 : 97;
+      const kShift = key[ki % key.length].charCodeAt(0) - 65;
+      const dir = mode === 'encrypt' ? kShift : (26 - kShift) % 26;
+      const out = String.fromCharCode(((ch.charCodeAt(0) - base + dir) % 26 + base));
+      if (i < lim) rows.push({ plain: ch, keyChar: key[ki % key.length], shift: kShift, out });
+      result += out;
+      ki++;
+    } else {
+      if (i < lim) rows.push({ plain: ch, keyChar: '—', shift: '—', out: ch });
+      result += ch;
+    }
+  }
+
+  steps.push({
+    title: 'Keyword Setup',
+    body: `Keyword: <span class="highlight">${esc(key)}</span> (repeats over text length)<br>
+Each letter of the keyword gives a shift: A=0, B=1, … Z=25`,
+  });
+
+  // Build alphabet reference table
+  let alphaHtml = '<table class="cipher-table"><tr><th>Letter</th>';
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l => {
+    alphaHtml += `<td>${l}</td>`;
+  });
+  alphaHtml += '</tr><tr><th>Shift</th>';
+  for (let i = 0; i < 26; i++) alphaHtml += `<td>${i}</td>`;
+  alphaHtml += '</tr></table>';
+  steps.push({ title: 'Alphabet → Shift Reference', body: alphaHtml });
+
+  // Build per-char table
+  let tableHtml = `<table class="cipher-table">
+    <tr><th>Position</th><th>Plaintext</th><th>Key Char</th><th>Shift</th><th>→ Output</th></tr>`;
+  rows.forEach((r, i) => {
+    tableHtml += `<tr>
+      <td>${i + 1}</td>
+      <td class="cell-active">${esc(r.plain)}</td>
+      <td class="cell-key">${esc(r.keyChar)}</td>
+      <td>${r.shift}</td>
+      <td class="cell-result">${esc(r.out)}</td>
+    </tr>`;
+  });
+  if (text.length > lim) tableHtml += `<tr><td colspan="5" style="color:var(--muted)">… ${text.length - lim} more</td></tr>`;
+  tableHtml += '</table>';
+  steps.push({ title: `${mode === 'encrypt' ? 'Encryption' : 'Decryption'} Table`, body: tableHtml });
+
+  steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+
+  return { result, steps };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. PLAYFAIR CIPHER
+//    Uses a 5×5 key matrix (I=J merged). Encrypts letter pairs.
+//    Rules: same row → shift right; same col → shift down;
+//           rectangle → swap columns.
+// ═══════════════════════════════════════════════════════════════════
+function playfair(text, keyStr, mode) {
+  if (!keyStr || !/^[a-zA-Z]+$/.test(keyStr))
+    throw new Error('Playfair key must contain only letters.');
+
+  const steps = [];
+
+  // Build 5×5 matrix
+  const seen = {};
+  const matrix = [];
+  const cleanKey = keyStr.toUpperCase().replace(/J/g, 'I');
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.replace('J', '');
+
+  for (const ch of cleanKey + alpha) {
+    if (!seen[ch]) { seen[ch] = true; matrix.push(ch); }
+  }
+
+  // Grid helpers
+  const pos = ch => { const i = matrix.indexOf(ch === 'J' ? 'I' : ch); return [Math.floor(i / 5), i % 5]; };
+  const at  = (r, c) => matrix[r * 5 + c];
+
+  // Display the matrix
+  let matHtml = '<div class="matrix-grid" style="grid-template-columns:repeat(5,30px)">';
+  matrix.forEach(ch => { matHtml += `<div class="matrix-cell">${ch}</div>`; });
+  matHtml += '</div>';
+
+  steps.push({
+    title: 'Build 5×5 Key Matrix',
+    body: `Key: <span class="highlight">${esc(keyStr.toUpperCase())}</span> (I=J merged)<br><br>${matHtml}`,
+  });
+
+  // Prepare plaintext: uppercase, no J, no non-alpha
+  let clean = text.toUpperCase().replace(/J/g, 'I').replace(/[^A-Z]/g, '');
+  if (mode === 'encrypt') {
+    // Insert X between duplicate pair letters & pad
+    let prepared = '';
+    let i = 0;
+    while (i < clean.length) {
+      prepared += clean[i];
+      if (i + 1 < clean.length && clean[i] === clean[i + 1]) {
+        prepared += 'X';
+      } else if (i + 1 < clean.length) {
+        prepared += clean[i + 1];
+        i++;
+      }
+      i++;
+    }
+    if (prepared.length % 2 !== 0) prepared += 'X';
+    clean = prepared;
+  }
+
+  steps.push({
+    title: 'Prepare Plaintext Digrams',
+    body: `Cleaned: <span class="hl2">${esc(clean)}</span><br>Digrams: <span class="highlight">${
+      Array.from({ length: Math.ceil(clean.length / 2) }, (_, i) => clean.slice(i * 2, i * 2 + 2)).join(' ')
+    }</span>`,
+  });
+
+  // Encrypt / Decrypt digrams
+  let result = '';
+  const digrams = [];
+  let tableHtml = `<table class="cipher-table">
+    <tr><th>Digram</th><th>Rule</th><th>Output</th></tr>`;
+
+  for (let i = 0; i < clean.length; i += 2) {
+    const a = clean[i], b = clean[i + 1] || 'X';
+    const [r1, c1] = pos(a), [r2, c2] = pos(b);
+    let oa, ob, rule;
+    const shift = mode === 'encrypt' ? 1 : 4; // +1 encrypt, +4 (i.e. -1 mod 5)
+
+    if (r1 === r2) {
+      // Same row
+      oa = at(r1, (c1 + shift) % 5);
+      ob = at(r2, (c2 + shift) % 5);
+      rule = 'Same Row → shift right';
+    } else if (c1 === c2) {
+      // Same column
+      oa = at((r1 + shift) % 5, c1);
+      ob = at((r2 + shift) % 5, c2);
+      rule = 'Same Column → shift down';
+    } else {
+      // Rectangle
+      oa = at(r1, c2);
+      ob = at(r2, c1);
+      rule = 'Rectangle → swap corners';
+    }
+    result += oa + ob;
+    tableHtml += `<tr>
+      <td class="cell-active">${a}${b}</td>
+      <td style="font-size:10px">${rule}</td>
+      <td class="cell-result">${oa}${ob}</td>
+    </tr>`;
+  }
+  tableHtml += '</table>';
+
+  steps.push({ title: 'Digram Transformations', body: tableHtml });
+  steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+
+  return { result, steps };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. RAIL FENCE CIPHER
+//    Writes plaintext in a zig-zag across N rails then reads rows.
+// ═══════════════════════════════════════════════════════════════════
+function railfence(text, keyStr, mode) {
+  const rails = parseInt(keyStr, 10);
+  if (isNaN(rails) || rails < 2) throw new Error('Rail Fence key must be an integer ≥ 2.');
+  if (text.length === 0) throw new Error('Text cannot be empty.');
+
+  const steps = [];
+  const n = text.length;
+
+  if (mode === 'encrypt') {
+    // Assign each char to a rail
+    const fence = Array.from({ length: rails }, () => []);
+    let rail = 0, dir = 1;
+    for (let i = 0; i < n; i++) {
+      fence[rail].push({ i, ch: text[i] });
+      if (rail === 0) dir = 1;
+      if (rail === rails - 1) dir = -1;
+      rail += dir;
+    }
+
+    // Build visual fence
+    let fenceHtml = '<div style="font-family:var(--mono);font-size:12px;margin:8px 0">';
+    for (let r = 0; r < rails; r++) {
+      const row = Array(n).fill('·');
+      fence[r].forEach(({ i, ch }) => row[i] = ch);
+      const color = ['var(--accent)', 'var(--accent2)', 'var(--accent4)', 'var(--accent3)'][r % 4];
+      fenceHtml += `<div style="margin:4px 0"><span style="color:${color};margin-right:6px">Rail ${r + 1}:</span><span class="rail-row" style="color:${color}">${row.map(c => esc(c)).join(' ')}</span></div>`;
+    }
+    fenceHtml += '</div>';
+    steps.push({ title: `Write in Zig-Zag (${rails} Rails)`, body: fenceHtml });
+
+    const result = fence.map(r => r.map(o => o.ch).join('')).join('');
+
+    let railContents = '';
+    fence.forEach((r, ri) => {
+      railContents += `<span class="highlight">Rail ${ri + 1}:</span> <span class="hl2">${r.map(o => o.ch).join('')}</span><br>`;
+    });
+    steps.push({ title: 'Read Rails Left to Right', body: railContents });
+    steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+    return { result, steps };
+
+  } else {
+    // Decrypt: figure out rail lengths then fill
+    const cycle = 2 * (rails - 1);
+    const railLen = Array(rails).fill(0);
+    let r = 0, d = 1;
+    for (let i = 0; i < n; i++) {
+      railLen[r]++;
+      if (r === 0) d = 1;
+      if (r === rails - 1) d = -1;
+      r += d;
+    }
+
+    // Split ciphertext into rails
+    const railChars = [];
+    let ptr = 0;
+    for (let ri = 0; ri < rails; ri++) {
+      railChars.push(text.slice(ptr, ptr + railLen[ri]).split(''));
+      ptr += railLen[ri];
+    }
+
+    let railContents = '';
+    railChars.forEach((rc, ri) => {
+      railContents += `<span class="highlight">Rail ${ri + 1} (${rc.length} chars):</span> <span class="hl2">${rc.join('')}</span><br>`;
+    });
+    steps.push({ title: 'Distribute Ciphertext to Rails', body: railContents });
+
+    // Read in zig-zag order
+    const indices = Array(rails).fill(0);
+    let result = '';
+    r = 0; d = 1;
+    for (let i = 0; i < n; i++) {
+      result += railChars[r][indices[r]++];
+      if (r === 0) d = 1;
+      if (r === rails - 1) d = -1;
+      r += d;
+    }
+
+    steps.push({ title: 'Read Back in Zig-Zag Order', body: `<span class="hl2">${esc(result)}</span>` });
+    steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+    return { result, steps };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. COLUMNAR TRANSPOSITION CIPHER
+//    Arrange plaintext in rows under keyword letters,
+//    then read columns in alphabetical key-letter order.
+// ═══════════════════════════════════════════════════════════════════
+function columnar(text, keyStr, mode) {
+  if (!keyStr || !/^[a-zA-Z]+$/.test(keyStr))
+    throw new Error('Columnar key must contain only letters.');
+
+  const key = keyStr.toUpperCase();
+  const numCols = key.length;
+  const steps = [];
+
+  // Column order (alphabetical sort of key chars, stable)
+  const order = [...key].map((ch, i) => ({ ch, i }))
+    .sort((a, b) => a.ch === b.ch ? a.i - b.i : a.ch.localeCompare(b.ch))
+    .map(o => o.i);
+
+  // Step 1: show column order
+  let colOrderHtml = '<table class="cipher-table"><tr><th>Position</th>';
+  key.split('').forEach(ch => colOrderHtml += `<th>${ch}</th>`);
+  colOrderHtml += '</tr><tr><td>Read Order</td>';
+  order.forEach((col, rank) => {
+    const isFirst = rank === 0;
+    colOrderHtml += `<td class="${isFirst ? 'cell-key' : 'cell-active'}">${rank + 1}</td>`;
+  });
+  // Reorder row: show rank per column index
+  colOrderHtml += '</tr></table>';
+
+  steps.push({
+    title: 'Determine Column Read Order',
+    body: `Key: <span class="highlight">${esc(key)}</span> — columns read in alphabetical key-letter order.<br><br>${colOrderHtml}`,
+  });
+
+  if (mode === 'encrypt') {
+    // Pad text
+    const padded = text + 'X'.repeat((numCols - (text.length % numCols)) % numCols);
+    const numRows = padded.length / numCols;
+
+    // Build grid
+    const grid = Array.from({ length: numRows }, (_, r) =>
+      Array.from({ length: numCols }, (_, c) => padded[r * numCols + c])
+    );
+
+    // Display grid
+    let gridHtml = '<table class="cipher-table"><tr>';
+    key.split('').forEach((ch, ci) => {
+      gridHtml += `<th style="color:var(--accent4)">${ch}<br><small style="color:var(--muted);font-size:9px">${ci + 1}</small></th>`;
+    });
+    gridHtml += '</tr>';
+    grid.forEach(row => {
+      gridHtml += '<tr>' + row.map(ch => `<td>${esc(ch)}</td>`).join('') + '</tr>';
+    });
+    gridHtml += '</table>';
+    steps.push({ title: 'Write Plaintext in Grid', body: `Padded: <span class="hl2">${esc(padded)}</span><br><br>${gridHtml}` });
+
+    // Read columns in order
+    const result = order.map(col => grid.map(row => row[col]).join('')).join('');
+    let readHtml = order.map((col, rank) =>
+      `<span class="highlight">Col ${rank + 1} (key '${key[col]}'):</span> <span class="hl2">${grid.map(r => r[col]).join('')}</span>`
+    ).join('<br>');
+    steps.push({ title: 'Read Columns in Alphabetical Key Order', body: readHtml });
+    steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+    return { result, steps };
+
+  } else {
+    // Decrypt
+    const n = text.length;
+    const numRows = Math.ceil(n / numCols);
+    const extra = n % numCols;
+    // Column lengths: some may be shorter if text didn't divide evenly
+    const colLengths = order.map((col, rank) => {
+      if (extra === 0) return numRows;
+      // extra columns (by read order rank) get numRows, rest get numRows-1
+      return rank < extra ? numRows : numRows - 1;
+    });
+
+    // Fill columns
+    const cols = {};
+    let ptr = 0;
+    order.forEach((col, rank) => {
+      cols[col] = text.slice(ptr, ptr + colLengths[rank]).split('');
+      ptr += colLengths[rank];
+    });
+
+    let colHtml = '';
+    order.forEach((col, rank) => {
+      colHtml += `<span class="highlight">Col '${key[col]}':</span> <span class="hl2">${cols[col].join('')}</span><br>`;
+    });
+    steps.push({ title: 'Assign Ciphertext Back to Columns', body: colHtml });
+
+    // Read row by row
+    let result = '';
+    const rowIndices = Array(numCols).fill(0);
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        if (cols[c] && cols[c][r] !== undefined) result += cols[c][r];
+      }
+    }
+    result = result.replace(/X+$/, ''); // strip trailing padding
+
+    steps.push({ title: 'Read Back Row by Row', body: `<span class="hl2">${esc(result)}</span>` });
+    steps.push({ title: 'Final Result', body: `<span class="highlight">${esc(result)}</span>` });
+    return { result, steps };
+  }
+}
+
+// ── Initialize ───────────────────────────────────────────────────
+updateUI();
+</script>
+</body>
+</html>
